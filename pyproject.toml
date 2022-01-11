@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "web3auth"
-version = "1.1.0"
+version = "1.1.1"
 description = "A web3-based authentication library for python"
 authors = ["Павел Жуков <33721692+LeaveMyYard@users.noreply.github.com>"]
 license = "GNU GENERAL PUBLIC LICENSE"
