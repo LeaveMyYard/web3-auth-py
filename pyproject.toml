@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "web3auth"
+version = "0.1.0"
+description = "A web3-based authentication library for python"
+authors = ["Павел Жуков <33721692+LeaveMyYard@users.noreply.github.com>"]
+license = "GNU GENERAL PUBLIC LICENSE"
+packages = [
+    { include = "web3auth" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+eth-account = "^0.5.6"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+web3 = "^5.26.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
