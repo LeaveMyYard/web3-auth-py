@@ -1,4 +1,4 @@
-from . import types, utils, exceptions
+from . import types, utils, exceptions, token
 from eth_account.account import Account
 
 EIP712_TYPES: types.TypeDeclaration = {
@@ -24,10 +24,6 @@ class AuthManager:
     def combine_message_to_EIP712(self, message: types.MessageData) -> types.EIP712Data:
         return types.EIP712Data(EIP712_TYPES, EIP712_PRIMARY_TYPE, self.domain, message)
 
-    def authenticate(self, message: types.MessageData, signature: str) -> str:
-        data = self.combine_message_to_EIP712(message)
-        return self.authenticate_data(data, signature)
-
     def generate_sign_data(self, address: str) -> types.EIP712Data:
         if not utils.check_address_valid(address):
             raise exceptions.AuthError(f"Invalid address format: {address!r}")
@@ -35,8 +31,16 @@ class AuthManager:
         message = types.MessageData(address, utils.generate_salt(16))
         return self.combine_message_to_EIP712(message)
 
+    def authenticate(
+        self, message: types.MessageData, signature: str
+    ) -> token.UserTokenManager:
+        data = self.combine_message_to_EIP712(message)
+        return self.authenticate_data(data, signature)
+
     @staticmethod
-    def authenticate_data(data: types.EIP712Data, signature: str) -> str:
+    def authenticate_data(
+        data: types.EIP712Data, signature: str
+    ) -> token.UserTokenManager:
         try:
             recovered_address = Account.recover_message(
                 data.encode(), signature=signature
@@ -50,4 +54,4 @@ class AuthManager:
                 f"match address recovered from signature {recovered_address}"
             )
 
-        return recovered_address
+        return token.UserTokenManager(recovered_address)

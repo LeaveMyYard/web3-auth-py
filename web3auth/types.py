@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 from typing import Dict, List
 from eth_account.messages import encode_structured_data, SignableMessage
+from datetime import datetime
 
 
 @dataclass
@@ -35,3 +36,9 @@ class EIP712Data:
 
     def encode(self) -> SignableMessage:
         return encode_structured_data(asdict(self))
+
+
+@dataclass
+class AuthTokenPayload:
+    sub: str
+    exp: datetime
