@@ -1,5 +1,6 @@
 from . import types, utils, exceptions, token
 from eth_account.account import Account
+from copy import deepcopy
 
 EIP712_TYPES: types.TypeDeclaration = {
     "EIP712Domain": [
@@ -7,29 +8,27 @@ EIP712_TYPES: types.TypeDeclaration = {
         {"name": "version", "type": "string"},
         {"name": "chainId", "type": "uint256"},
         {"name": "verifyingContract", "type": "address"},
-    ],
-    "Auth": [
-        {"name": "address", "type": "string"},
-        {"name": "salt", "type": "string"},
-    ],
+        {"name": "salt", "type": "address"},
+    ]
 }
 
-EIP712_PRIMARY_TYPE = "Auth"
+EIP712_PRIMARY_TYPE = "string"
 
 
 class AuthManager:
     def __init__(self, domain: types.DomainData) -> None:
         self.domain = domain
 
-    def combine_message_to_EIP712(self, message: types.MessageData) -> types.EIP712Data:
-        return types.EIP712Data(EIP712_TYPES, EIP712_PRIMARY_TYPE, self.domain, message)
+    def combine_message_to_EIP712(self, message: str) -> types.EIP712Data:
+        domain = deepcopy(self.domain)
+        domain.salt = utils.generate_salt(16)
+        return types.EIP712Data(EIP712_TYPES, EIP712_PRIMARY_TYPE, domain, message)
 
     def generate_sign_data(self, address: str) -> types.EIP712Data:
         if not utils.check_address_valid(address):
             raise exceptions.AuthError(f"Invalid address format: {address!r}")
 
-        message = types.MessageData(address, utils.generate_salt(16))
-        return self.combine_message_to_EIP712(message)
+        return self.combine_message_to_EIP712(address)
 
     def authenticate(
         self, message: types.MessageData, signature: str
