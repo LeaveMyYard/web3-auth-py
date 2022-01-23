@@ -1,7 +1,8 @@
-import pytest
 import secrets
-import web3auth as w3a
 from datetime import timedelta
+
+import pytest
+import web3auth as w3a
 from web3.auto import w3
 
 

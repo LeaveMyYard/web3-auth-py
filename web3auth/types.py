@@ -1,7 +1,10 @@
-from dataclasses import dataclass, asdict
-from typing import Dict, List, Optional
-from eth_account.messages import encode_structured_data, SignableMessage
+from dataclasses import asdict, dataclass
 from datetime import datetime
+from typing import Dict, List, Optional
+
+from eth_account.messages import SignableMessage, encode_structured_data
+
+from . import utils
 
 
 @dataclass
@@ -19,15 +22,24 @@ class DomainData:
     version: str
     chainId: int
     verifyingContract: Optional[str]
+
+
+@dataclass
+class DomainDataWithSalt(DomainData):
     salt: str
+
+
+@dataclass
+class AuthMessage:
+    address: str
 
 
 @dataclass
 class EIP712Data:
     types: Dict[str, TypeDeclaration]
     primaryType: str
-    domain: DomainData
-    message: str
+    domain: DomainDataWithSalt
+    message: AuthMessage
 
     def encode(self) -> SignableMessage:
         return encode_structured_data(asdict(self))

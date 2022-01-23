@@ -1,10 +1,12 @@
 import pytest
-import utils
 import web3auth
+
+import utils
 
 
 @pytest.mark.parametrize(
-    "address", [utils.generate_address() for _ in range(10)],
+    "address",
+    [utils.generate_address() for _ in range(10)],
 )
 def test_random_address(address: str, manager: web3auth.AuthManager):
     data = manager.generate_sign_data(address)

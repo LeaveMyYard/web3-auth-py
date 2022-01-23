@@ -1,12 +1,12 @@
 import random
-import string
 import re
+import string
 
 SYMBOLS = string.hexdigits
 
 
 def generate_salt(size: int) -> str:
-    return "".join(random.choices(SYMBOLS, k=size))
+    return "0x" + "".join(random.choices(SYMBOLS, k=size * 2)).lower()
 
 
 def check_address_valid(address: str) -> bool:

@@ -1,8 +1,10 @@
-from datetime import timedelta, datetime
-from typing import List
-from jose import jwt
-from . import types, exceptions
 import dataclasses
+from datetime import datetime, timedelta
+from typing import List
+
+from jose import jwt
+
+from . import exceptions, types
 
 
 class UserTokenManager:
@@ -28,4 +30,3 @@ class UserTokenManager:
         except (jwt.JWTError, TypeError) as error:
             raise exceptions.AuthError("Could not validate credentials") from error
         return token_data
-

@@ -12,14 +12,14 @@ def test_valid_signature(manager: web3auth.AuthManager) -> None:
     signed_message = w3.eth.account.sign_message(data.encode(), private_key=private_key)
 
     assert address == manager.authenticate_data(data, signed_message.signature).user
-    assert address == manager.authenticate(data.message, signed_message.signature).user
+    assert address == manager.authenticate(data.message, signed_message.signature, data.domain.salt).user
 
     assert (
         address == manager.authenticate_data(data, signed_message.signature.hex()).user
     )
     assert (
         address
-        == manager.authenticate(data.message, signed_message.signature.hex()).user
+        == manager.authenticate(data.message, signed_message.signature.hex(), data.domain.salt).user
     )
 
 
@@ -35,7 +35,7 @@ def test_valid_signature_other_address(manager: web3auth.AuthManager) -> None:
         manager.authenticate_data(data, signed_message.signature)
 
     with pytest.raises(web3auth.AuthError):
-        manager.authenticate(data.message, signed_message.signature)
+        manager.authenticate(data.message, signed_message.signature, data.domain.salt)
 
 
 def test_invalid_signature(manager: web3auth.AuthManager) -> None:
@@ -50,4 +50,4 @@ def test_invalid_signature(manager: web3auth.AuthManager) -> None:
         manager.authenticate_data(data, signed_message.signature.hex()[:-4] + "1234")
 
     with pytest.raises(web3auth.AuthError):
-        manager.authenticate(data.message, signed_message.signature.hex()[:-4] + "1234")
+        manager.authenticate(data.message, signed_message.signature.hex()[:-4] + "1234", data.domain.salt)
