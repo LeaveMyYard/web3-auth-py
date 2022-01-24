@@ -37,10 +37,11 @@ class AuthManager:
     def add_noonce(self, address: str) -> None:
         self._noonce_data[address] += 1
 
-    def _verify_noonce(self, received_noonce: int, current_noonce: int) -> None:
-        if current_noonce != received_noonce:
+    def verify_noonce(self, noonce: int, address: str) -> None:
+        current_noonce = self.get_noonce(address)
+        if current_noonce != noonce:
             raise exceptions.AuthError(
-                f"Invalid noonce. Found {current_noonce}, expected {received_noonce}"
+                f"Invalid noonce. Found {noonce}, expected {current_noonce}"
             )
 
     def make_auth_message(self, address: str) -> types.AuthMessage:
@@ -130,7 +131,7 @@ class AuthManager:
         auth_message = self.make_auth_message(address)
         domain = self.make_domain(salt)
 
-        self._verify_noonce(noonce, auth_message.noonce)
+        self.verify_noonce(noonce, address)
 
         message_hash = keccak(auth_message.signable_bytes(domain))
         try:
