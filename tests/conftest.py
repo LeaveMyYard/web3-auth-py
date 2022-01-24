@@ -11,4 +11,4 @@ def domain() -> web3auth.DomainData:
 
 @pytest.fixture
 def manager(domain: web3auth.DomainData) -> web3auth.AuthManager:
-    return web3auth.AuthManager(domain)
+    return web3auth.AuthManager.from_domain_data(domain)

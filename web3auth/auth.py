@@ -1,66 +1,151 @@
-from dataclasses import asdict
-from typing import Dict, Optional
+from collections import defaultdict
+from typing import Any, Dict, Literal, Optional, Type, TypeVar, overload
 
+from eip712_structs import EIP712Struct, make_domain
 from eth_account.account import Account
+from eth_utils.crypto import keccak
 
 from . import exceptions, token, types, utils
 
-EIP712Domain = [
-    types.FieldDeclaration(name="name", type="string"),
-    types.FieldDeclaration(name="version", type="string"),
-    types.FieldDeclaration(name="chainId", type="uint256"),
-    types.FieldDeclaration(name="verifyingContract", type="address"),
-    types.FieldDeclaration(name="salt", type="string"),
-]
-
-EIP712_TYPES: Dict[str, types.TypeDeclaration] = {
-    "EIP712Domain": EIP712Domain,
-    "Auth": [
-        types.FieldDeclaration(name="address", type="string"),
-    ],
-}
-
-EIP712_PRIMARY_TYPE = "Auth"
+_T = TypeVar("_T", bound="AuthManager")
 
 
 class AuthManager:
-    def __init__(self, domain: types.DomainData) -> None:
-        self.domain = domain
+    def __init__(
+        self,
+        name: str,
+        version: str,
+        chain_id: int,
+        verifying_contract: Optional[str] = None,
+    ) -> None:
+        self.name = name
+        self.version = version
+        self.chain_id = chain_id
+        self.verifying_contract = verifying_contract
 
-    def combine_message_to_EIP712(self, message: types.AuthMessage, salt: Optional[str] = None) -> types.EIP712Data:
-        domain = types.DomainDataWithSalt(
-            **asdict(self.domain), salt=salt or utils.generate_salt(32)
+        self._noonce_data: Dict[str, int] = defaultdict(lambda: 0)
+
+    @classmethod
+    def from_domain_data(cls: Type[_T], domain: types.DomainData) -> _T:
+        return cls(
+            domain.name, domain.version, domain.chain_id, domain.verifying_contract
         )
-        return types.EIP712Data(EIP712_TYPES, EIP712_PRIMARY_TYPE, domain, message)
 
-    def generate_sign_data(self, address: str) -> types.EIP712Data:
+    def get_noonce(self, address: str) -> int:
+        return self._noonce_data[address]
+
+    def add_noonce(self, address: str) -> None:
+        self._noonce_data[address] += 1
+
+    def _verify_noonce(self, received_noonce: int, current_noonce: int) -> None:
+        if current_noonce != received_noonce:
+            raise exceptions.AuthError(
+                f"Invalid noonce. Found {current_noonce}, expected {received_noonce}"
+            )
+
+    def make_auth_message(self, address: str) -> types.AuthMessage:
         if not utils.check_address_valid(address):
             raise exceptions.AuthError(f"Invalid address format: {address!r}")
 
-        auth_message = types.AuthMessage(address)
-        return self.combine_message_to_EIP712(auth_message)
+        return types.AuthMessage(address=address, noonce=self.get_noonce(address))
+
+    def make_domain(self, salt: Optional[str] = None) -> EIP712Struct:
+        return make_domain(
+            self.name,
+            self.version,
+            self.chain_id,
+            self.verifying_contract,
+            salt or utils.generate_salt(32),
+        )
+
+    @overload
+    def generate_sign_data(
+        self,
+        address: str,
+        salt: Optional[str] = None,
+        *,
+        type: Literal["json"],
+    ) -> str:
+        ...
+
+    @overload
+    def generate_sign_data(
+        self,
+        address: str,
+        salt: Optional[str] = None,
+        *,
+        type: Literal["hash"],
+    ) -> bytes:
+        ...
+
+    @overload
+    def generate_sign_data(
+        self,
+        address: str,
+        salt: Optional[str] = None,
+        *,
+        type: Literal["dict"],
+    ) -> Any:
+        ...
+
+    @overload
+    def generate_sign_data(
+        self,
+        address: str,
+        salt: Optional[str] = None,
+    ) -> Any:
+        ...
+
+    def generate_sign_data(self, address, salt=None, *, type="dict"):
+        """
+        Returns a EIP712 data to sign.
+
+        If type == "json", will return a json string with EIP712 data.
+        If type == "hash", will return bytes object, ready to be signed.
+        If type == "dict", will return python dict with full EIP712 data.
+
+        """
+
+        domain = self.make_domain(salt)
+        auth_message = self.make_auth_message(address)
+
+        if type == "json":
+            return auth_message.to_message_json(domain)
+        if type == "hash":
+            return auth_message.signable_bytes(domain)
+        if type == "dict":
+            return auth_message.to_message(domain)
 
     def authenticate(
-        self, message: types.AuthMessage, signature: str, salt: str
+        self, address: str, noonce: int, salt: str, signature: str
     ) -> token.UserTokenManager:
-        data = self.combine_message_to_EIP712(message, salt)
-        return self.authenticate_data(data, signature)
+        """
+        Using provided data and a signature, return a token manager, that can create JWT.
 
-    @staticmethod
-    def authenticate_data(
-        data: types.EIP712Data, signature: str
-    ) -> token.UserTokenManager:
+        If something is wrong - an AuthError is raised.
+
+        If everything is correct, `self.add_noonce(address)` will be called.
+        """
+
+        auth_message = self.make_auth_message(address)
+        domain = self.make_domain(salt)
+
+        self._verify_noonce(noonce, auth_message.noonce)
+
+        message_hash = keccak(auth_message.signable_bytes(domain))
         try:
-            recovered_address = Account.recover_message(
-                data.encode(), signature=signature
-            )
+            recovered_address = Account._recover_hash(message_hash, signature=signature)
         except Exception as e:
             raise exceptions.AuthError(*e.args) from e
 
-        if data.message.address.lower() != recovered_address.lower():
+        if recovered_address.lower() != address.lower():
             raise exceptions.AuthError(
-                f"Address in data {data.message.address!r} does not "
-                f"match address recovered from signature {recovered_address}"
+                f"Address in data {address!r} does not "
+                f"match address recovered from signature {recovered_address!r}"
             )
 
-        return token.UserTokenManager(recovered_address)
+        token_manager = token.UserTokenManager(recovered_address)
+
+        self.add_noonce(address)
+
+        return token_manager

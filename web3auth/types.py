@@ -1,51 +1,24 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
-from eth_account.messages import SignableMessage, encode_structured_data
-
-from . import utils
+from eip712_structs import EIP712Struct, String, Uint
 
 
-@dataclass
-class FieldDeclaration:
-    name: str
-    type: str
-
-
-TypeDeclaration = List[FieldDeclaration]
-
-
-@dataclass
-class DomainData:
-    name: str
-    version: str
-    chainId: int
-    verifyingContract: Optional[str]
-
-
-@dataclass
-class DomainDataWithSalt(DomainData):
-    salt: str
-
-
-@dataclass
-class AuthMessage:
-    address: str
-
-
-@dataclass
-class EIP712Data:
-    types: Dict[str, TypeDeclaration]
-    primaryType: str
-    domain: DomainDataWithSalt
-    message: AuthMessage
-
-    def encode(self) -> SignableMessage:
-        return encode_structured_data(asdict(self))
+class AuthMessage(EIP712Struct):
+    address = String()
+    noonce = Uint(256)
 
 
 @dataclass
 class AuthTokenPayload:
     sub: str
     exp: datetime
+
+
+@dataclass
+class DomainData:
+    name: str
+    version: str
+    chain_id: int
+    verifying_contract: Optional[str] = None

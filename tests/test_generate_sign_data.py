@@ -10,9 +10,10 @@ import utils
 )
 def test_random_address(address: str, manager: web3auth.AuthManager):
     data = manager.generate_sign_data(address)
-    assert data.message.address == address
+    assert data["message"]["address"] == address
 
-    assert data.encode() is not None
+    assert isinstance(manager.generate_sign_data(address, type="json"), str)
+    assert isinstance(manager.generate_sign_data(address, type="hash"), bytes)
 
 
 @pytest.mark.parametrize(
