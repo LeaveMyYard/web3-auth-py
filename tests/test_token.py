@@ -14,13 +14,11 @@ PUBLIC_KEY = "0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E"
 
 def test_token(manager: w3a.AuthManager) -> None:
     salt = w3a.utils.generate_salt(32)
-    auth_message = manager.make_auth_message(PUBLIC_KEY)
     message_hash = keccak(manager.generate_sign_data(PUBLIC_KEY, salt, type="hash"))
     signature = w3.eth.account._sign_hash(message_hash, PRIVATE_KEY).signature
+    noonce = manager.get_noonce(PUBLIC_KEY)
 
-    token_manager = manager.authenticate(
-        PUBLIC_KEY, auth_message.noonce, salt, signature
-    )
+    token_manager = manager.authenticate(PUBLIC_KEY, noonce, salt, signature)
 
     secret_key = secrets.token_urlsafe(16)
 

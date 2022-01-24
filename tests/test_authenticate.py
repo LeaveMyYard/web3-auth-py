@@ -11,34 +11,53 @@ PUBLIC_KEY = "0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E"
 
 def test_valid_signature(manager: w3a.AuthManager) -> None:
     salt = w3a.utils.generate_salt(32)
-    auth_message = manager.make_auth_message(PUBLIC_KEY)
     message_hash = keccak(manager.generate_sign_data(PUBLIC_KEY, salt, type="hash"))
     signature = w3.eth.account._sign_hash(message_hash, PRIVATE_KEY).signature
+    noonce = manager.get_noonce(PUBLIC_KEY)
 
-    assert (
-        PUBLIC_KEY
-        == manager.authenticate(PUBLIC_KEY, auth_message.noonce, salt, signature).user
-    )
+    assert PUBLIC_KEY == manager.authenticate(PUBLIC_KEY, noonce, salt, signature).user
 
 
 def test_valid_signature_other_address(manager: w3a.AuthManager) -> None:
     public_key = PUBLIC_KEY.replace("1", "2")
     salt = w3a.utils.generate_salt(32)
-    auth_message = manager.make_auth_message(public_key)
     message_hash = keccak(manager.generate_sign_data(public_key, salt, type="hash"))
     signature = w3.eth.account._sign_hash(message_hash, PRIVATE_KEY).signature
+    noonce = manager.get_noonce(PUBLIC_KEY)
 
     with pytest.raises(w3a.AuthError):
-        manager.authenticate(PUBLIC_KEY, auth_message.noonce, salt, signature)
+        manager.authenticate(PUBLIC_KEY, noonce, salt, signature)
 
 
 def test_invalid_signature(manager: w3a.AuthManager) -> None:
     salt = w3a.utils.generate_salt(32)
-    auth_message = manager.make_auth_message(PUBLIC_KEY)
     message_hash = keccak(manager.generate_sign_data(PUBLIC_KEY, salt, type="hash"))
     signature = (
         w3.eth.account._sign_hash(message_hash, PRIVATE_KEY).signature[:-4] + b"1234"
     )
+    noonce = manager.get_noonce(PUBLIC_KEY)
 
     with pytest.raises(w3a.AuthError):
-        manager.authenticate(PUBLIC_KEY, auth_message.noonce, salt, signature)
+        manager.authenticate(PUBLIC_KEY, noonce, salt, signature)
+
+
+def test_invalid_noonce(manager: w3a.AuthManager) -> None:
+    salt = w3a.utils.generate_salt(32)
+    message_hash = keccak(manager.generate_sign_data(PUBLIC_KEY, salt, type="hash"))
+    signature = w3.eth.account._sign_hash(message_hash, PRIVATE_KEY).signature
+    noonce = manager.get_noonce(PUBLIC_KEY)
+
+    with pytest.raises(w3a.AuthError):
+        manager.authenticate(PUBLIC_KEY, noonce + 1, salt, signature)
+
+
+def test_invalid_twice(manager: w3a.AuthManager) -> None:
+    salt = w3a.utils.generate_salt(32)
+    message_hash = keccak(manager.generate_sign_data(PUBLIC_KEY, salt, type="hash"))
+    signature = w3.eth.account._sign_hash(message_hash, PRIVATE_KEY).signature
+    noonce = manager.get_noonce(PUBLIC_KEY)
+
+    manager.authenticate(PUBLIC_KEY, noonce, salt, signature)
+
+    with pytest.raises(w3a.AuthError):
+        manager.authenticate(PUBLIC_KEY, noonce, salt, signature)
