@@ -45,6 +45,7 @@ class AuthManager:
             )
 
     def make_auth_message(self, address: str) -> types.AuthMessage:
+        address = address.lower()
         if not utils.check_address_valid(address):
             raise exceptions.AuthError(f"Invalid address format: {address!r}")
 
@@ -107,6 +108,7 @@ class AuthManager:
 
         """
 
+        address = address.lower()
         domain = self.make_domain(salt)
         auth_message = self.make_auth_message(address)
 
@@ -128,6 +130,7 @@ class AuthManager:
         If everything is correct, `self.add_noonce(address)` will be called.
         """
 
+        address = address.lower()
         auth_message = self.make_auth_message(address)
         domain = self.make_domain(salt)
 
