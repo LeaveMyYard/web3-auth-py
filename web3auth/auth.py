@@ -21,7 +21,7 @@ class AuthManager:
         self.name = name
         self.version = version
         self.chain_id = chain_id
-        self.verifying_contract = verifying_contract
+        self.verifying_contract = verifying_contract and verifying_contract.lower()
 
         self._noonce_data: Dict[str, int] = defaultdict(lambda: 0)
 
