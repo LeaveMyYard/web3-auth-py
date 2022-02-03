@@ -12,11 +12,18 @@ class UserTokenManager:
         self.user = user
 
     def create_access_token(
-        self, expires_delta: timedelta, secret_key: str, *, algorithm: str = "HS256"
+        self,
+        expires_delta: timedelta,
+        secret_key: str,
+        *,
+        algorithm: str = "HS256",
+        roles: List[str] = []
     ) -> str:
         expire = datetime.utcnow() + expires_delta
 
-        to_encode = dataclasses.asdict(types.AuthTokenPayload(self.user, exp=expire))
+        to_encode = dataclasses.asdict(
+            types.AuthTokenPayload(self.user, exp=expire, roles=roles)
+        )
         encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
         return encoded_jwt
 

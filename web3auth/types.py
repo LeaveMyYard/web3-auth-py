@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from eip712_structs import EIP712Struct, String, Uint
 
@@ -14,6 +14,7 @@ class AuthMessage(EIP712Struct):
 class AuthTokenPayload:
     sub: str
     exp: datetime
+    roles: List[str]
 
 
 @dataclass
