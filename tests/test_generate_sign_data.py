@@ -1,7 +1,10 @@
 import pytest
+import random
 import web3auth
 
 import utils
+
+random.seed(0)
 
 
 @pytest.mark.parametrize(

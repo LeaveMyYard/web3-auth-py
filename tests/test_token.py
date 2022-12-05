@@ -1,6 +1,6 @@
 import secrets
 from datetime import timedelta
-
+from typing import Optional
 import pytest
 import web3auth as w3a
 from eth_utils.curried import keccak
@@ -12,8 +12,10 @@ PRIVATE_KEY = b"\xb2\\}\xb3\x1f\xee\xd9\x12''\xbf\t9\xdcv\x9a\x96VK-\xe4\xc4rm\x
 PUBLIC_KEY = "0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E"
 
 
-def test_token(manager: w3a.AuthManager) -> None:
-    salt = w3a.utils.generate_salt(32)
+@pytest.mark.parametrize(
+    "salt", [None, w3a.utils.generate_salt(32), w3a.utils.generate_salt(32)]
+)
+def test_token(manager: w3a.AuthManager, salt: Optional[str]) -> None:
     message_hash = keccak(manager.generate_sign_data(PUBLIC_KEY, salt, type="hash"))
     signature = w3.eth.account._sign_hash(message_hash, PRIVATE_KEY).signature
     noonce = manager.get_noonce(PUBLIC_KEY)

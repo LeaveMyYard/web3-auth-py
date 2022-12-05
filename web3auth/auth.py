@@ -57,7 +57,7 @@ class AuthManager:
             self.version,
             self.chain_id,
             self.verifying_contract,
-            salt or utils.generate_salt(32),
+            salt=salt,
         )
 
     @overload
