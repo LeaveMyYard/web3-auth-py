@@ -1,5 +1,7 @@
 # web3-auth-py
 
+This repo is deprecated. Use https://github.com/spruceid/siwe-py
+
 A web3-based authentication library for python.
 
 This library can be used with any framework of your choice to provide a centralized authentication for blockchain users (using metamask or other web3 provider).
